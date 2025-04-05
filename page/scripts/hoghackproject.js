@@ -21,15 +21,40 @@ function getLocation() {
     });
 }
 
+// Display directions on the screen
+
+function displayDirections(legs) {
+    const directionsList = document.getElementById('directions-list');
+    directionsList.innerHTML = ""; // Clear previous directions
+
+    legs.forEach((leg, legIndex) => {
+        leg.steps.forEach((step, stepIndex) => {
+            const instruction = step.maneuver.instruction || "Proceed";
+            const roadName = step.name || "Unnamed Road";
+            const direction = step.maneuver.modifier || ""; // e.g., "left", "right", "straight"
+            const distanceMiles = (step.distance * 0.000621371).toFixed(2);
+
+            // Determine the icon based on the maneuver type
+            const icon = getDirectionIcon(step.maneuver.modifier);
+
+            // Create a list item with an icon and text
+            const listItem = document.createElement('li');
+            listItem.innerHTML = `<img src="${icon}" alt="${direction}" style="width: 20px; height: 20px; margin-right: 10px;"> ${instruction} ${direction ? `(${direction})` : ""} onto ${roadName} (${distanceMiles} miles)`;
+            directionsList.appendChild(listItem);
+        });
+    });
+}
+
+// Fetch and display route
 async function route(type) {
-    var startInput = document.getElementById('start').value;
-    var endInput = document.getElementById('end').value;
+    const startInput = document.getElementById('start').value;
+    const endInput = document.getElementById('end').value;
 
     let startCoords;
     if (startInput) {
         startCoords = await geocode(startInput);
         if (!startCoords) {
-            alert("Could not geocode start location");
+            alert("Could not geocode start location.");
             return;
         }
     } else {
@@ -47,60 +72,48 @@ async function route(type) {
         return;
     }
 
-    var startLat = startCoords[0];
-    var startLng = startCoords[1];
-    var endLat = endCoords[0];
-    var endLng = endCoords[1];
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startCoords[1]},${startCoords[0]};${endCoords[1]},${endCoords[0]}?overview=full&geometries=geojson&steps=true`;
 
-    var osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`;
+    try {
+        const response = await fetch(osrmUrl);
+        const data = await response.json();
+        console.log(data); // Debugging: Check the API response
 
-    fetch(osrmUrl)
-        .then(response => response.json())
-        .then(data => {
-            if (data.routes && data.routes.length > 0) {
-                var routeData = data.routes[0];
-                var geometry = L.geoJSON(routeData.geometry);
+        if (data.routes && data.routes.length > 0) {
+            const routeData = data.routes[0];
+            console.log(routeData.legs); // Debugging: Check the legs structure
 
-                if (routeLayer) {
-                    map.removeLayer(routeLayer);
-                }
-                routeLayer = geometry.addTo(map);
+            const geometry = L.geoJSON(routeData.geometry);
 
-                var bounds = geometry.getBounds();
-                map.fitBounds(bounds);
+            if (routeLayer) map.removeLayer(routeLayer);
+            routeLayer = geometry.addTo(map);
 
-                if (startMarker) {
-                    map.removeLayer(startMarker);
-                }
-                startMarker = L.marker([startLat, startLng]).addTo(map);
+            map.fitBounds(geometry.getBounds());
+            addMarkers(startCoords, endCoords);
+            displayDirections(routeData.legs);
 
-                if (endMarker) {
-                    map.removeLayer(endMarker);
-                }
-                endMarker = L.marker([endLat, endLng]).addTo(map);
-
-                var instructions = "";
-                if (routeData.legs && routeData.legs.length > 0) {
-                    routeData.legs[0].steps.forEach(step => {
-                        instructions += step.maneuver.instruction + "<br>";
-                    });
-                }
-                document.getElementById('instructions').innerHTML = instructions;
-
-                if (type === 'longest') {
-                    calculateLongestRoute(startCoords, endCoords, routeData.distance);
-                }
-
-            } else {
-                alert("No route found.");
+            if (type === 'longest') {
+                calculateLongestRoute(startCoords, endCoords, routeData.distance);
             }
-        })
-        .catch(error => {
-            console.error("Error fetching route:", error);
-            alert("Error fetching route.");
-        });
+        } else {
+            alert("No route found.");
+        }
+    } catch (error) {
+        console.error("Error fetching route:", error);
+        alert("Error fetching route.");
+    }
 }
 
+// Add markers to the map
+function addMarkers(startCoords, endCoords) {
+    if (startMarker) map.removeLayer(startMarker);
+    startMarker = L.marker(startCoords).addTo(map);
+
+    if (endMarker) map.removeLayer(endMarker);
+    endMarker = L.marker(endCoords).addTo(map);
+}
+
+// Geocode an address to coordinates
 async function geocode(address) {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json`;
     try {
@@ -117,10 +130,22 @@ async function geocode(address) {
     }
 }
 
+// Calculate the longest route (unchanged logic, cleaned up)
 async function calculateLongestRoute(startCoords, endCoords, fastestDistance) {
-    const minMultiplier = 2; // Only minimum is 2x
-    const maxMultiplier = 100; // Large max for flexibility
-    const targetDistance = fastestDistance * (Math.random() * (maxMultiplier - minMultiplier) + minMultiplier);
+    const minMultiplier = 2;
+    const maxAttempts = 20;
+
+    const locations = [
+        { name: "Bass Pro Pyramid", coords: [35.1583, -90.0567] },
+        { name: "Elvis's House", coords: [35.0494, -90.0241] },
+        { name: "Zuckerberg San Francisco General Hospital", coords: [37.7541, -122.4069] },
+        { name: "The Cheese Cave", coords: [37.2106, -93.2922] },
+        { name: "Walmart in Kodiak Alaska", coords: [57.7900, -152.4073] }
+    ];
+
+    const randomLocation = locations[Math.floor(Math.random() * locations.length)];
+    const randomLocationCoords = randomLocation.coords;
+    const randomLocationName = randomLocation.name;
 
     async function routeWithWaypoints(waypoints) {
         let coordsString = `${startCoords[1]},${startCoords[0]};`;
@@ -129,16 +154,37 @@ async function calculateLongestRoute(startCoords, endCoords, fastestDistance) {
         });
         coordsString += `${endCoords[1]},${endCoords[0]}`;
 
-        const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`;
+        const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson&steps=true`;
 
         const response = await fetch(osrmUrl);
         const data = await response.json();
+        console.log(data); // Debugging: Check the API response
 
         if (data.routes && data.routes.length > 0) {
             return data.routes[0];
         }
         return null;
     }
+
+    let attempts = 0;
+    while (attempts < maxAttempts) {
+        const waypoints = [randomLocationCoords];
+        const route = await routeWithWaypoints(waypoints);
+
+        if (route && route.distance >= fastestDistance * minMultiplier) {
+            const geometry = L.geoJSON(route.geometry);
+
+            if (routeLayer) map.removeLayer(routeLayer);
+            routeLayer = geometry.addTo(map);
+
+            map.fitBounds(geometry.getBounds());
+            displayDirections(route.legs); // Display directions for the longest route
+            return;
+        }
+        attempts++;
+    }
+    alert("Could not find a significantly different longer route with " + randomLocationName + ".");
+}
 
     function generateWaypoints(start, end, numWaypoints) {
         const waypoints = [];
@@ -192,4 +238,59 @@ async function calculateLongestRoute(startCoords, endCoords, fastestDistance) {
         attempts++;
     }
     alert("Could not find a longer route within the specified distance range.");
+
+    // Calculate the longest route (unchanged logic, cleaned up)
+async function calculateLongestRoute(startCoords, endCoords, fastestDistance) {
+    const minMultiplier = 2;
+    const maxAttempts = 20;
+
+    const locations = [
+        { name: "Bass Pro Pyramid", coords: [35.1583, -90.0567] },
+        { name: "Elvis's House", coords: [35.0494, -90.0241] },
+        { name: "Zuckerberg San Francisco General Hospital", coords: [37.7541, -122.4069] },
+        { name: "The Cheese Cave", coords: [37.2106, -93.2922] },
+        { name: "Walmart in Kodiak Alaska", coords: [57.7900, -152.4073] }
+    ];
+
+    const randomLocation = locations[Math.floor(Math.random() * locations.length)];
+    const randomLocationCoords = randomLocation.coords;
+    const randomLocationName = randomLocation.name;
+
+    async function routeWithWaypoints(waypoints) {
+        let coordsString = `${startCoords[1]},${startCoords[0]};`;
+        waypoints.forEach(waypoint => {
+            coordsString += `${waypoint[1]},${waypoint[0]};`;
+        });
+        coordsString += `${endCoords[1]},${endCoords[0]}`;
+
+        const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson&steps=true`;
+
+        const response = await fetch(osrmUrl);
+        const data = await response.json();
+        console.log(data); // Debugging: Check the API response
+
+        if (data.routes && data.routes.length > 0) {
+            return data.routes[0];
+        }
+        return null;
+    }
+
+    let attempts = 0;
+    while (attempts < maxAttempts) {
+        const waypoints = [randomLocationCoords];
+        const route = await routeWithWaypoints(waypoints);
+
+        if (route && route.distance >= fastestDistance * minMultiplier) {
+            const geometry = L.geoJSON(route.geometry);
+
+            if (routeLayer) map.removeLayer(routeLayer);
+            routeLayer = geometry.addTo(map);
+
+            map.fitBounds(geometry.getBounds());
+            displayDirections(route.legs); // Display directions for the longest route
+            return;
+        }
+        attempts++;
+    }
+    alert("Could not find a significantly different longer route with " + randomLocationName + ".");
 }

@@ -7,13 +7,79 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <style>
       #map { height: 500px; width: 100%; }
+
+      #directions-panel {
+        margin-top: 20px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        background-color: #f9f9f9;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    #directions-list li {
+        margin-bottom: 10px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+    }
+
+    #directions-list img {
+        display: none; /* Hides the image */
+    }
+
+    #instructions {
+        display: none;
+    }
     </style>
   </head>
   <body onload="route('fastest')">
     <a href="{% url 'home' %}">Home</a>
     Good
     <div id="map"></div>
+    <div id="directions-panel">
+        <h2>Directions</h2>
+        <div id="directions-list">
+
+        </div>
+    </div>
+
+    <div id="instructions"></div>
     <script>
+
+        // Display directions on the screen
+
+        function displayDirections(legs) {
+
+            const directionsList = document.getElementById('directions-list');
+            directionsList.innerHTML = ""; // Clear previous directions
+
+            legs.forEach((leg, legIndex) => {
+                leg.steps.forEach((step, stepIndex) => {
+                    const instruction = step.maneuver.instruction || "Proceed";
+                    const roadName = step.name || "Unnamed Road";
+                    const direction = step.maneuver.modifier || ""; // e.g., "left", "right", "straight"
+                    const distanceMiles = (step.distance * 0.000621371).toFixed(2);
+
+                    // Determine the icon based on the maneuver type
+
+                    // Create a list item with an icon and text
+                    const listItem = document.createElement('li');
+                    listItem.innerHTML = `<img src="" alt="${direction}" style="width: 20px; height: 20px; margin-right: 10px;"> ${instruction} ${direction ? `(${direction})` : ""} onto ${roadName} (${distanceMiles} miles)`;
+                    directionsList.appendChild(listItem);
+                });
+            });
+        }
+
+        // Add markers to the map
+        function addMarkers(startCoords, endCoords) {
+            if (startMarker) map.removeLayer(startMarker);
+            startMarker = L.marker(startCoords).addTo(map);
+
+            if (endMarker) map.removeLayer(endMarker);
+            endMarker = L.marker(endCoords).addTo(map);
+        }
+
       // hoghackproject.js
 
       var map = L.map('map').setView([0, 0], 2);
@@ -37,89 +103,65 @@
           });
       }
 
-      async function route(type) {
-          var startInput = localStorage["startInput"];
-          var endInput = localStorage["endInput"];
-          console.log(startInput)
-          console.log(endInput)
-          // var startInput = 'new york';
-          // var endInput = 'joplin';
+    // Fetch and display route
+    async function route(type) {
 
-          let startCoords;
-          if (startInput) {
-              startCoords = await geocode(startInput);
-              if (!startCoords) {
-                  alert("Could not geocode start location");
-                  return;
-              }
-          } else {
-              try {
-                  startCoords = await getLocation();
-              } catch (error) {
-                  alert("Unable to get current location: " + error);
-                  return;
-              }
-          }
+        var startInput = localStorage["startInput"];
+        var endInput = localStorage["endInput"];
 
-          const endCoords = await geocode(endInput);
-          if (!endCoords) {
-              alert("Could not geocode end location.");
-              return;
-          }
+        let startCoords;
+        if (startInput) {
+            startCoords = await geocode(startInput);
+            if (!startCoords) {
+                alert("Could not geocode start location.");
+                return;
+            }
+        } else {
+            try {
+                startCoords = await getLocation();
+            } catch (error) {
+                alert("Unable to get current location: " + error);
+                return;
+            }
+        }
 
-          var startLat = startCoords[0];
-          var startLng = startCoords[1];
-          var endLat = endCoords[0];
-          var endLng = endCoords[1];
+        const endCoords = await geocode(endInput);
+        if (!endCoords) {
+            alert("Could not geocode end location.");
+            return;
+        }
 
-          var osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`;
+        const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startCoords[1]},${startCoords[0]};${endCoords[1]},${endCoords[0]}?overview=full&geometries=geojson&steps=true`;
 
-          fetch(osrmUrl)
-              .then(response => response.json())
-              .then(data => {
-                  if (data.routes && data.routes.length > 0) {
-                      var routeData = data.routes[0];
-                      var geometry = L.geoJSON(routeData.geometry);
+        try {
+            const response = await fetch(osrmUrl);
+            const data = await response.json();
+            console.log(data); // Debugging: Check the API response
 
-                      if (routeLayer) {
-                          map.removeLayer(routeLayer);
-                      }
-                      routeLayer = geometry.addTo(map);
+            if (data.routes && data.routes.length > 0) {
+                const routeData = data.routes[0];
+                console.log(routeData.legs); // Debugging: Check the legs structure
 
-                      var bounds = geometry.getBounds();
-                      map.fitBounds(bounds);
+                const geometry = L.geoJSON(routeData.geometry);
 
-                      if (startMarker) {
-                          map.removeLayer(startMarker);
-                      }
-                      startMarker = L.marker([startLat, startLng]).addTo(map);
+                if (routeLayer) map.removeLayer(routeLayer);
+                routeLayer = geometry.addTo(map);
 
-                      if (endMarker) {
-                          map.removeLayer(endMarker);
-                      }
-                      endMarker = L.marker([endLat, endLng]).addTo(map);
+                map.fitBounds(geometry.getBounds());
+                addMarkers(startCoords, endCoords);
+                displayDirections(routeData.legs);
 
-                      var instructions = "";
-                      if (routeData.legs && routeData.legs.length > 0) {
-                          routeData.legs[0].steps.forEach(step => {
-                              instructions += step.maneuver.instruction + "<br>";
-                          });
-                      }
-                      // document.getElementById('instructions').innerHTML = instructions;
-
-                      if (type === 'longest') {
-                          calculateLongestRoute(startCoords, endCoords, routeData.distance);
-                      }
-
-                  } else {
-                      alert("No route found.");
-                  }
-              })
-              .catch(error => {
-                  console.error("Error fetching route:", error);
-                  alert("Error fetching route.");
-              });
-      }
+                if (type === 'longest') {
+                    calculateLongestRoute(startCoords, endCoords, routeData.distance);
+                }
+            } else {
+                alert("No route found.");
+            }
+        } catch (error) {
+            console.error("Error fetching route:", error);
+            alert("Error fetching route.");
+        }
+    }
 
       async function geocode(address) {
           const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json`;

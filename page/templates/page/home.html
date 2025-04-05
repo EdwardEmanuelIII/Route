@@ -59,6 +59,7 @@
     <img src="https://1000logos.net/wp-content/uploads/2024/01/Emoji-Confused.png" alt="confused picture" id="confusedImage" style="float:left;">
     <label class="boxLabel" for="start" style="margin-top: 20px;">Start Location:</label>
     <input class="box" size="25" type="text" id="start" placeholder="Current Location (auto-detected)" style="margin: 20px;">
+    <button onclick="populateCurrentLocation()" style="margin: 20px;">Use My Location</button>
     <label class="boxLabel" for="end" style="margin-top: 20px;">End Location:</label>
     <input class="box" size="25" type="text" id="end" placeholder="Destination" style="margin: 20px;">
   </div>
@@ -73,6 +74,33 @@
     <div id="instructions"></div>
 
     <script>
+
+
+      async function populateCurrentLocation() {
+          try {
+              // Get the user's current coordinates
+              const coords = await getLocation();
+              const [latitude, longitude] = coords;
+
+              // Reverse geocode the coordinates to get an address
+              const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`;
+              const response = await fetch(url);
+              const data = await response.json();
+
+              if (data && data.address) {
+                  // Construct a readable address from the response
+                  const address = `${data.address.road || ''}, ${data.address.city || data.address.town || ''}, ${data.address.state || ''}, ${data.address.country || ''}`.trim();
+
+                  // Populate the "Start Location" text box
+                  document.getElementById('start').value = address;
+              } else {
+                  alert("Unable to fetch address for your location.");
+              }
+          } catch (error) {
+              console.error("Error fetching current location:", error);
+              alert("Unable to fetch your current location.");
+          }
+      }
 
       var map = L.map('map').setView([0, 0], 2);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
