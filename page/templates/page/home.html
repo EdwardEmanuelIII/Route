@@ -18,7 +18,7 @@
 
     <label for="end">End Location:</label>
     <input type="text" id="end" placeholder="Destination">
-    <a href="{% url 'choice' %}"><button onclick="storeValues();">Calculate</button></a>
+    <button id="button" onclick="storeValues();">Calculate</button>
 
 
     <div id="map"></div>
@@ -48,12 +48,19 @@
       }
 
       function storeValues() {
-        var startInput = document.getElementById('start').value;
-        var endInput = document.getElementById('end').value;
-        console.log(startInput)
-        console.log(endInput)
-        localStorage["startInput"] = startInput;
-        localStorage["endInput"] = endInput;
+        console.log(document.getElementById('end').value)
+        if (document.getElementById('end').value === "") {
+          alert("You must specify an end location");
+        } else {
+          var startInput = document.getElementById('start').value;
+          var endInput = document.getElementById('end').value;
+          console.log(startInput)
+          console.log(endInput)
+          localStorage["startInput"] = startInput;
+          localStorage["endInput"] = endInput;
+          window.location.href = "choice";
+        }
+
       }
 
       async function geocode(address) {

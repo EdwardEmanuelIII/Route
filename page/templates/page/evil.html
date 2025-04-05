@@ -7,14 +7,90 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <style>
       #map { height: 500px; width: 100%; }
+
+      .alert {
+        padding: 20px;
+        background-color: #f44336;
+        color: white;
+      }
+
+      .closebtn {
+        margin-left: 15px;
+        color: white;
+        font-weight: bold;
+        float: right;
+        font-size: 22px;
+        line-height: 20px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+
+      .closebtn:hover {
+        color: black;
+      }
     </style>
   </head>
-  <body onload="route('longest')">
+  <body>
+    <div id="revealid">
+      <button style="display: block; font-size: 200px;" onclick="reveal()">CLICK TO SEE THE RESULTS</button>
+    </div>
+
+    {% load static %}
+    <div class="alert" id="alert1" style="text-align: center; display: none">
+    </div>
     <a href="{% url 'home' %}">Home</a>
     Evil
     <div id="map"></div>
     <script>
-      // hoghackproject.js
+      bool_switch = false
+
+      function reveal() {
+        document.getElementById("revealid").style.display = "none";
+        route('longest')
+      }
+
+      function playAudio() {
+        myAudio.play();
+      }
+
+      function displayAlert(alertId) {
+        document.getElementById(alertId).style.display = "none";
+        var div = document.getElementById(alertId)
+        var image_array = [`<img src="{% static 'images/crash.jpg' %}" width="250" height="300">`,
+                             `<img src="{% static 'images/deer.jpg' %}" width="250" height="300">`,
+                             `<img src="{% static 'images/drift.jpg' %}" width="250" height="300">`,
+                             `<img src="{% static 'images/lit.jpg' %}" width="250" height="300">`,
+                             `<img src="{% static 'images/shot.jpg' %}" width="250" height="300">`,
+                             `<img src="{% static 'images/small.jpg' %}" width="250" height="300">`,
+                             `<img src="{% static 'images/wind.jpg' %}" width="250" height="300">`,
+                            ]
+        var randomImageIndex = Math.floor(Math.random() * image_array.length);
+        var audio_array = [`<audio id="myAudio" src="{% static 'audios/exitNow.mp3' %}"></audio>`,
+                           `<audio id="myAudio" src="{% static 'audios/exitHere.mp3' %}"></audio>`,
+                           `<audio id="myAudio" src="{% static 'audios/highWindAdvisory.mp3' %}"></audio>`,
+                           `<audio id="myAudio" src="{% static 'audios/sppedCheck.mp3' %}"></audio>`,
+                           `<audio id="myAudio" src="{% static 'audios/wildFire.mp3' %}"></audio>`,
+                           `<audio id="myAudio" src="{% static 'audios/crashRep.mp3' %}"></audio>`,
+                           `<audio id="myAudio" src="{% static 'audios/deerCrossing.mp3' %}"></audio>`,
+
+                            ]
+        var randomAudioIndex = Math.floor(Math.random() * audio_array.length);
+        div.innerHTML = audio_array[randomAudioIndex] + image_array[randomImageIndex]
+        myAudio.play();
+      }
+
+      function hideAlert(alertId) {
+        document.getElementById(alertId).style.display = "block";
+      }
+
+      function startNotifications() {
+        if (bool_switch) {
+          displayAlert("alert1")
+        } else {
+          hideAlert("alert1")
+        }
+        bool_switch = !bool_switch
+      }
 
       var map = L.map('map').setView([0, 0], 2);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -38,12 +114,9 @@
       }
 
       async function route(type) {
+          setInterval(startNotifications, 5000);
           var startInput = localStorage["startInput"];
           var endInput = localStorage["endInput"];
-          console.log(startInput)
-          console.log(endInput)
-          // var startInput = 'new york';
-          // var endInput = 'joplin';
 
           let startCoords;
           if (startInput) {
@@ -105,7 +178,6 @@
                               instructions += step.maneuver.instruction + "<br>";
                           });
                       }
-                      // document.getElementById('instructions').innerHTML = instructions;
 
                       if (type === 'longest') {
                           calculateLongestRoute(startCoords, endCoords, routeData.distance);
@@ -206,7 +278,6 @@
                         });
                       });
                   }
-                  // document.getElementById('instructions').innerHTML = instructions;
                   return;
               }
               attempts++;
