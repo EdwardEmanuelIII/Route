@@ -6,7 +6,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <style>
-/* <<<<<<< Updated upstream
       #map { height: 500px; width: 100%; }
 
       .alert {
@@ -42,62 +41,6 @@
     <a href="{% url 'home' %}">Home</a>
     Evil
     <div id="map"></div>
-======= */
-        #map { height: 500px; width: 85%; }
-        .center {
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-        }
-        #evilText{
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        #homeButton {
-            background-color: rgb(150, 2, 2);
-            font-size: 40px;
-            font-family: Georgia, 'Times New Roman', Times, serif;
-            color: white;
-            height: 50px;
-            width: 240px;
-            margin-top: 5px;
-            margin-bottom: 0px;
-            border-radius: 5px;
-            transition: all 1s ease-in-out;
-        }
-        #homeButton:hover {
-          transform: scale(0.05);
-        }
-        .fire {
-          height: auto; 
-          width: auto; 
-          margin-left: 50px;
-          margin-right: 50px;
-          max-width: 140px; 
-          max-height: 140px;
-        }
-    </style>
-  </head>
-  <body onload="route('longest')" style="background-image: url(https://i0.wp.com/racinecountyeye.com/wp-content/uploads/2023/04/pexels-photo-2726986.jpeg);">
-    <div>
-        <a href="{% url 'home' %}"><button  id="homeButton">Home</button></a>
-    </div>
-    <div id="revealid">
-        <button style="display: block; font-size: 200px;" onclick="reveal()">CLICK TO SEE THE RESULTS</button>
-    </div>
-      {% load static %}
-      <div class="alert" id="alert1" style="text-align: center; display: none">
-      </div>
-    <div id="evilText">
-        <img class="fire" src="https://img.freepik.com/free-psd/fiery-blaze-vivid-image-intense-combustion_191095-78116.jpg?semt=ais_hybrid&w=740" alt="fire">
-        <p style="font-size: 100px; margin-top: 0px; margin-bottom: 0px; font-family: Georgia, 'Times New Roman', Times, serif; color: rgb(255, 0, 0);">EVIL!!!</p>
-        <img class="fire" src="https://img.freepik.com/free-psd/fiery-blaze-vivid-image-intense-combustion_191095-78116.jpg?semt=ais_hybrid&w=740" alt="fire">
-    </div>
-    <div class="center">
-        <div id="map" style="margin-top: 10px;"></div>
-    </div>
-<!-- >>>>>>> Stashed changes -->
     <script>
       bool_switch = false
 
