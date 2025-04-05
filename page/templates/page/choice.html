@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html>
   <body>
       <a href="{% url 'home' %}">Home</a>
@@ -6,4 +6,76 @@
       <a href="{% url 'evil' %}">EVIL</a>
       <a href="{% url 'good' %}">GOOD</a>
   </body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <script src="https://kit.fontawesome.com/2113fa599e.js" crossorigin="anonymous"></script>
+        <meta charset="UTF-8">
+        <title>PRACTICE</title>
+        <style>
+            .goodButton {
+                font-family: Georgia, 'Times New Roman', Times, serif;
+                font-size: 40px;
+                background-color: rgb(93, 237, 93);
+                height: 100px;
+                width: 400px;
+                margin: 100px;
+            }
+            .evilButton {
+                font-family: Impact, 'Arial Narrow Bold', sans-serif;
+                font-size: 40px;
+                color: white;
+                background-color: rgb(150, 2, 2);
+                height: 100px;
+                width: 400px;
+                margin: 100px;
+            }
+            .center {
+                display: flex;
+                align-items: flex-start;
+                justify-content: center;
+                font-size: 50px;
+                font-family: Arial, Helvetica, sans-serif;
+                color: white;
+            }
+            .left {
+                float: left;
+                width: 50%;
+                height: 100%;
+            }
+            .left:hover {
+                background-color: rgb(255, 0, 0, 0.4);
+            }
+            .right {
+                float: right;
+                width: 50%;
+                height: 100%;
+            }
+            .right:hover {
+                background-color: rgba(0, 128, 0, 0.4);
+            }
+            body {
+                margin: 0;
+                height: 100vh;
+                background-image: url('https://preview.redd.it/hei8qq4r0u181.jpg?width=640&crop=smart&auto=webp&s=79e05a3de08ebeae8dcace162008c3a161c82810');
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+            }
+            .outer {
+                display: flex;
+                justify-content: center; /* Horizontal center */
+                text-decoration: none;
+            }
+        </style>
+    </head>
+    <body>
+        <p class="center"><strong>Pick Your Path!</strong></p>
+        <a class="left outer" href="{% url 'evil' %}">
+            <button class="evilButton" onclick=""><i class="fa-regular fa-location-xmark fa-shake"></i> EVIL ROUTE!</button>
+        <a class="right outer" href="{% url 'good' %}">
+            <button class="goodButton"><i class="fa-regular fa-location-smile fa-bounce"></i> good route!</button>
+    </body>
 </html>
